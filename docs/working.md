@@ -14,6 +14,8 @@
 - Added the final README (drafted with Antigravity, reviewed).
 - CI ran `check_skills.py --allow-pending` while the focused skills landed one PR at a time. With all four skills in place, CI is back to the strict check.
 
+- Extended `skills/real_device.md` with controlling a running app and reading its state: URL commands to a running process, a status heartbeat file, WKWebView bridges, and options not yet verified (an in-app control server, Safari Web Inspector). Added the tailnet observation and the observed file-copy speed range. Drafted with Antigravity, reviewed; the latency difference through a bridge is no longer attributed to the bridge alone.
+
 ## Lessons Learned
 
 - Test acceleration and simulator UI automation describe the same `xcodebuild test` loop. Keeping them as separate skills duplicated it.

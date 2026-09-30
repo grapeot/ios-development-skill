@@ -8,7 +8,7 @@
   - [iOS Development](./ios_development.md): Root skill covering the Xcode toolchain, serial builds, DerivedData, and the [signing model](./ios_development.md#signing).
   - [Simulator Testing](./simulator_testing.md): Simulator UI automation, test acceleration, synthetic fixtures, and XCTest assertions.
   - [App Store Release](./app_store_release.md): Archive, export, verification, and distribution upload.
-- Last reviewed: 2026-09-30. Signing without an Xcode account session, `devicectl device copy to`, payload-URL runs with result polling, and cold versus warm benchmarks were verified that day with Xcode 26.6 on a paired iPhone. The HealthKit, TCC, `openURL`, and console notes come from earlier verified runs.
+- Last reviewed: 2026-09-30. Signing without an Xcode account session, `devicectl device copy to`, payload-URL runs with result polling, cold versus warm benchmarks, and running app control and state channels (URL commands, status heartbeat file, and WKWebView bridges) were verified on 2026-09-30 with Xcode 26.6 on a paired iPhone. The HealthKit, TCC, and console notes come from earlier verified runs.
 
 ## Goal and Boundaries
 
@@ -30,8 +30,9 @@ An agent can independently verify:
 - The application installs in place via `xcrun devicectl device install app` and container access is confirmed with `xcrun devicectl device info apps --require-container-access`.
 - Test input files transfer successfully into the app container via `xcrun devicectl device copy to`.
 - The run executes via `--payload-url` (or `process openURL` for a warm process) with an allowlisted route and unique `run_id`.
+- App liveness and progression are confirmed by reading an atomic status heartbeat file from the container with advancing counters or timestamps via `xcrun devicectl device copy from`.
 - A structured result artifact tagged with the matching `run_id` is polled and retrieved from the container via `xcrun devicectl device copy from`, confirming a terminal `completed` status.
-- Benchmarks distinguish cold and warm runs, incorporate warmup cycles, report p50/p90 percentiles, and compare numerical results against Mac-computed references.
+- Benchmarks distinguish cold and warm runs, incorporate warmup cycles, report p50/p90 percentiles, measure through the path the app actually uses, and compare numerical results against Mac-computed references.
 - For authorized network uploads, backend reachability from the iPhone and backend readback are validated.
 
 ## Signing and installing
@@ -96,7 +97,7 @@ xcrun devicectl device copy to --device "<device-identifier>" \
   --domain-type appDataContainer --domain-identifier "<bundle-id>" \
   --source "<local-file>" --destination "Documents/<name>"
 ```
-- Speed: Verified copying 785 MB in 34 seconds into a development-signed container.
+- Speed varies: Copying the same 785 MB file into a development-signed container took 34 s in one run and 85 s in another on the same Wi-Fi.
 - Automated testing benefit: pushing files directly replaces an in-app download. No server has to be reachable from the phone, and the iOS local-network permission prompt, which needs a human tap, does not come up. The prompt was avoided in the verified run, not observed.
 - File sharing keys: the app in the verified run set `UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace` in its `Info.plist`, which let a person add files through Finder. Whether `devicectl device copy to` requires these keys was not tested.
 
@@ -140,7 +141,65 @@ xcrun devicectl device process openURL --device "<device-identifier>" \
 - A debug-only launch argument can serve as a fallback if payload URL routing is unavailable in the app; never enable automated diagnostic execution on every normal app launch.
 - Use `--json-output <ignored-path>` with `devicectl` commands to obtain machine-readable command status instead of parsing human-readable tables. A success status in `--json-output` records process launch, not that the app successfully parsed the URL or completed execution.
 
+## Controlling a running app and reading its state
+
+When an app is already active, choose a control and inspection channel based on direction, latency requirements, and system permissions:
+
+| Channel | Direction | Latency | Needs | Verified |
+|---|---|---|---|---|
+| URL commands (`process openURL`) | Host → App | Discrete (~1–2 s per command invocation overhead) | URL scheme with action allowlist in app; no network permissions or in-app server | Yes |
+| Status heartbeat file (`copy from`) | App → Host | Polling cadence (~5 s write cadence; ~1–2 s copy) | Container access, atomic file write (`.atomic`); no network permissions | Yes (recommended for liveness) |
+| WKWebView message handlers | Page ↔ Native (internal) | Adds tens of milliseconds per call (see [Benchmarking](#benchmarking-on-a-device)) | `WKScriptMessageHandler` (fire-and-forget) or `WKScriptMessageHandlerWithReply` (reply); `WKURLSchemeHandler` for ES modules | Yes |
+| In-app debug control server (WebSocket/HTTP) | Host ↔ App (bidirectional) | Real-time / streaming | `Network.framework`, local-network permission prompt, app in foreground, access token | No (not yet verified) |
+| Safari Web Inspector | Host ↔ Web page (bidirectional) | Interactive / real-time | `isInspectable = true` (iOS 16.4+), Safari developer tools | No (not yet verified) |
+
+The status heartbeat file is the recommended way to prove an app is alive and progressing. A `devicectl` launch success status in `--json-output` only proves that a process started, not that it is executing tasks or advancing state.
+
+### URL commands to a running app
+Deliver commands to an already-running app process using `devicectl`:
+```bash
+xcrun devicectl device process openURL --device "<device-identifier>" \
+  "<scheme>://<allowlisted-action>?run_id=<run-id>"
+```
+- Process preservation: The process ID is identical before and after invocation; the application process is not restarted.
+- Verified execution: In verified testing, delivering a URL action triggered a 60-decision benchmark, which executed and wrote `Documents/bench_<id>.json` to the container. Polling `devicectl device copy from` retrieved the artifact. Total round-trip was 29 s, almost all of it spent on the benchmark action itself.
+- App requirements: The application must implement an allowlist of permitted URL actions.
+- Channel characteristics: Requires no network permissions, no embedded HTTP/WebSocket server in the app, and no manual human taps.
+- Invocation overhead: Each command dispatch and container file retrieval costs a separate `devicectl` invocation (roughly 1–2 s). This makes URL commands well-suited for discrete operations (such as running a benchmark, pausing, restarting, or updating a configuration setting), rather than real-time interactive control. (Only running a benchmark was verified; other actions are examples of discrete command shapes).
+
+### Status heartbeat file
+The status heartbeat file is the recommended mechanism for an agent to confirm that an app is alive and actively progressing:
+- Liveness proof: An exit code 0 or success status from `devicectl device process launch` only confirms that a process was spawned. Reading a heartbeat file with advancing counters or timestamps proves the app is actively functioning rather than hung or crashed.
+- Cadence and atomic writes: The application writes a small JSON state snapshot into its container on a fixed cadence (every 5 s in verified testing), using an atomic write (`Data.write(to:options:.atomic)`) that continuously overwrites the same file (`Documents/<status-file>.json`).
+- Polling for progress: An agent copies the heartbeat file using `devicectl device copy from` whenever it needs to inspect state:
+  ```bash
+  xcrun devicectl device copy from --device "<device-identifier>" \
+    --domain-type appDataContainer --domain-identifier "<bundle-id>" \
+    --source "Documents/<status-file>.json" \
+    --destination "<ignored-local-path>/<status-file>.json"
+  ```
+  In verified runs, reading the heartbeat twice 20 s apart confirmed state progression (game ticks advanced from 1499 to 2250, and decision counts from 79 to 129).
+- Recommended schema: Include a monotonically increasing counter or timestamp (to detect stale files), the current execution phase or screen, and the specific metrics the task monitors. Report bounded aggregates only; never include private personal data.
+- Web view integration: In WKWebView-based apps, state snapshots can originate from the web context: the page posts state data to native code via a message handler, and native code writes the file atomically into the container.
+
+### Bridges inside a WKWebView-based app
+When automating or benchmarking an application containing a WKWebView, communicate between web content and native code using verified bridge mechanisms:
+- Page → Native (fire-and-forget): Register a `WKScriptMessageHandler` using `userContentController.add(_:name:)`. The web page dispatches messages with `window.webkit.messageHandlers.<name>.postMessage(obj)`. Verified for transmitting status heartbeat snapshots from web content to native file-writing routines.
+- Page → Native (with reply): Register a `WKScriptMessageHandlerWithReply` using `addScriptMessageHandler(_:contentWorld:name:)`. In JavaScript, `window.webkit.messageHandlers.<name>.postMessage(obj)` returns a `Promise` that resolves to the native reply. Verified for executing model inference decisions requested by web logic.
+- Bundle assets via custom URL scheme: Serving local bundle files through a custom URL scheme handler (`WKURLSchemeHandler`, such as `<custom-scheme>://local/index.html`) allows ES modules to load correctly on physical devices.
+- Bridge cost: calls that cross the script bridge were measurably slower than direct native calls; see [Benchmarking on a device](#benchmarking-on-a-device). Benchmark through the path the app actually uses.
+
+### Options not yet verified
+The following mechanisms are theoretical alternatives that have not yet been verified on a physical device. Do not present or rely on them as working without verification:
+- Embedded debug control server (WebSocket or HTTP via `Network.framework`): Could provide real-time, bidirectional control and streaming state telemetry. Because it operates over standard IP, it might function over a tailnet where `devicectl` fails. Anticipated constraints and costs to confirm: triggers the iOS local-network permission dialog on first LAN connection (requiring a human tap), requires the app to remain actively in the foreground (iOS suspends execution when the device is locked or the app is backgrounded), and requires an access token to secure control endpoints.
+- Safari Web Inspector: Attaching the desktop Safari Web Inspector to an inspectable web view (`isInspectable = true`, iOS 16.4+) to evaluate JavaScript directly inside web content from the host Mac.
+
 ## Result contract
+
+### Heartbeat versus one-shot result files
+Distinguish between ongoing status telemetry and final execution artifacts:
+- **Status heartbeat file**: Overwritten continuously on a fixed cadence (e.g. every 5 s) with current state snapshots, advancing counters, or timestamps to prove ongoing liveness and progress.
+- **One-shot result file**: Tagged with a unique `run_id` and written once when an execution, benchmark, or diagnostic action reaches a terminal status (`completed`, `error`, or `pending_permission`).
 
 ### Artifact schema and validation
 Structured diagnostic and benchmark artifacts must adhere to a predictable contract:
@@ -175,12 +234,14 @@ Physical device benchmarks require accounting for device-specific initialization
 - Separate cold and warm runs: Report cold-start and warm-state latencies separately.
 - Warmup cycles: Always perform warmup iterations before timing steady-state execution.
 - Distribution metrics: Measure many iterations and report distribution metrics (such as p50 and p90) rather than a single average.
+- Measure through the path the app actually uses: If an application interacts through an internal bridge (such as a WKWebView message handler to native code), benchmark end-to-end latency through that bridge rather than calling native code directly. In verified testing, a decision passing through `page -> native bridge -> model` had p50 latency of about 420–440 ms, compared to about 380 ms when the same model was called directly by native code. The 40–60 ms difference includes the bridge and time spent waiting behind other requests, and possibly GPU contention with page rendering; these were not measured separately.
 - Correctness check: Compare the device's numerical outputs against reference values computed on the Mac for the exact same inputs. A latency benchmark is invalid if the computation produces incorrect output.
 
 ## Verification and recovery
 
 Generic observed failure modes when operating on physical devices:
 - `localhost` in an iPhone app resolves to the **iPhone itself**, not the host Mac. Use an authorized reachable IP address or hostname for live backends; never publish private network addresses in skill files.
+- Reaching the device over a tailnet: With the iPhone and the Mac on the same Tailscale tailnet but on different physical networks (phone on cellular), `tailscale ping` reached the phone directly (66 ms), yet `xcrun devicectl list devices` showed the phone as `unavailable`, and browsing Bonjour on the Mac (`dns-sd -B _remotepairing._tcp local.`) did not show the phone's pairing service. CoreDevice discovers devices over Bonjour, which the tailnet did not carry. Install, file copy, launch, and openURL were therefore unavailable until the phone was back on the same LAN; then it showed `available (paired)` again.
 - Device console streams frequently contain unrelated system warnings and private identifiers. Avoid unbounded console dumps and screenshots.
 - In-place installations may report `launchServicesIdentifier: unknown`, but launching by bundle ID still functions.
 - A `devicectl --json-output` success status records process launch, not URL dispatch or successful execution; verify app-owned artifacts or backend timestamps.
