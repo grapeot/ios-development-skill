@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Offline checks for this skill repository. Exit code 1 on any failure.
 
-  python3 scripts/check_skills.py
+  python3 scripts/check_skills.py [--allow-pending]
+
+--allow-pending tolerates links to sibling skills in skills/ that do not exist
+yet. It exists only while the skills land one PR at a time; the last skill PR
+removes it from CI.
 """
 import re
 import sys
@@ -28,7 +32,8 @@ REQUIRED = {
 
 
 def main() -> int:
-    errors = []
+    allow_pending = "--allow-pending" in sys.argv
+    errors, pending = [], []
     for doc in DOCS:
         if not doc.exists():
             continue
@@ -39,7 +44,10 @@ def main() -> int:
                 continue
             path = (doc.parent / target.split("#", 1)[0]).resolve()
             if not path.exists():
-                errors.append(f"{rel}: broken link {target}")
+                if allow_pending and path.parent == SKILLS.resolve() and path.suffix == ".md":
+                    pending.append(f"{rel}: pending skill {target}")
+                else:
+                    errors.append(f"{rel}: broken link {target}")
         for label, pattern in PRIVATE.items():
             for m in pattern.finditer(text):
                 errors.append(f"{rel}: {label}: {m.group(0)}")
@@ -59,6 +67,8 @@ def main() -> int:
                 if not pattern.search(text):
                     errors.append(f"skills/{s.name}: missing {label} section")
 
+    for p in sorted(set(pending)):
+        print(f"PENDING {p}")
     for e in errors:
         print(f"FAIL {e}")
     print(f"{len(errors)} problem(s) in {sum(1 for d in DOCS if d.exists())} files, {len(skills)} skill(s)")
