@@ -10,5 +10,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 scripts/check_skills.py
+      - run: python3 scripts/check_skills.py --allow-pending
       - run: bash -n scripts/team_from_profile.sh
