@@ -5,7 +5,7 @@ This repository is an agent skill for iOS development from the command line. It 
 ## Structure
 
 - `skills/ios_development.md`: the root skill. It routes tasks and owns shared knowledge. It is the only file a workspace should index.
-- `skills/simulator_testing.md`, `skills/real_device.md`, `skills/app_store_release.md`: focused skills, loaded through the root.
+- `skills/simulator_testing.md`, `skills/real_device.md`, `skills/watch_development.md`, `skills/app_store_release.md`: focused skills, loaded through the root.
 - `scripts/check_skills.py`: offline structure, link, and privacy check. CI runs it.
 - `scripts/team_from_profile.sh`: reads a team ID from a cached provisioning profile.
 - `docs/`: PRD, RFC, test strategy, and `working.md`. Update `working.md` at the end of every session.
