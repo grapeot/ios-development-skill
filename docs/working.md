@@ -16,6 +16,10 @@
 
 - Extended `skills/real_device.md` with controlling a running app and reading its state: URL commands to a running process, a status heartbeat file, WKWebView bridges, and options not yet verified (an in-app control server, Safari Web Inspector). Added the tailnet observation and the observed file-copy speed range. Drafted with Antigravity, reviewed; the latency difference through a bridge is no longer attributed to the bridge alone.
 
+### 2026-10-12
+
+- Added `skills/watch_development.md` (drafted with Antigravity, reviewed): reaching the watch through its paired iPhone (not USB), explicit pairing via Device Hub ("+" → Pair Nearby Device) or the watch's Developer Mode screen, the missing Developer Mode toggle and its restart remedy, `connected (no DDI)` state and DDI symbol preparation, the `-destination-timeout` fix for `xcodebuild`, watch scheme/destination selection, HealthKit needing an explicit profile that includes the watch UDID (`0xe8008012`), and CLI install via `devicectl`. Wired it into the root skill's routing table, related skills, and install note, and into `AGENTS.md`. Observed during a first-time physical Apple Watch setup.
+
 ## Lessons Learned
 
 - Test acceleration and simulator UI automation describe the same `xcodebuild test` loop. Keeping them as separate skills duplicated it.
