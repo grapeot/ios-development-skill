@@ -19,6 +19,7 @@
 ### 2026-10-12
 
 - Added `skills/watch_development.md` (drafted with Antigravity, reviewed): reaching the watch through its paired iPhone (not USB), explicit pairing via Device Hub ("+" → Pair Nearby Device) or the watch's Developer Mode screen, the missing Developer Mode toggle and its restart remedy, `connected (no DDI)` state and DDI symbol preparation, the `-destination-timeout` fix for `xcodebuild`, watch scheme/destination selection, HealthKit needing an explicit profile that includes the watch UDID (`0xe8008012`), and CLI install via `devicectl`. Wired it into the root skill's routing table, related skills, and install note, and into `AGENTS.md`. Observed during a first-time physical Apple Watch setup.
+- Added a "Background location" section and a Traps row to `skills/watch_development.md` for an observed runtime crash: setting `CLLocationManager.allowsBackgroundLocationUpdates = true` on watchOS trips a CoreLocation assertion (`CLClientIsBackgroundable`), and declaring `WKBackgroundModes = [workout-processing]` does not permit the flag. The remedy is to rely on the active `HKWorkoutSession` and not set the flag. Drafted with Antigravity, reviewed.
 
 ## Lessons Learned
 

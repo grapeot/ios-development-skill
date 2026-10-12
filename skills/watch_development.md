@@ -101,6 +101,14 @@ When an Xcode scheme targets a watchOS app, Xcode restricts available destinatio
 - Specify the destination using the watch's platform and UDID:
   `-destination 'platform=watchOS,id=<watch-udid>'`
 
+## Background location
+
+A recording app gets background runtime from the active `HKWorkoutSession`; while the session
+runs, CoreLocation keeps delivering updates, so the app does not need — and must not set —
+`allowsBackgroundLocationUpdates` on watchOS (see Traps). It may still declare
+`WKBackgroundModes = [workout-processing]` in its Info.plist, but that declaration does not by
+itself permit the flag.
+
 ## Signing
 
 ### Explicit App ID and profile for HealthKit
@@ -152,3 +160,4 @@ Upon initial launch on the Apple Watch, any app requiring HealthKit displays a s
 | App installation fails with `Failed to install embedded profile for <bundle-id> : 0xe8008012 (This provisioning profile cannot be installed on this device.)` | Embedded provisioning profile predates watch registration and omits `<watch-udid>` | Build for the target watch (`platform=watchOS,id=<watch-udid>`) with `CODE_SIGN_STYLE=Automatic` and `-allowProvisioningUpdates` under an active Xcode account session to regenerate the profile with the watch included. |
 | Signing failure or missing capability when configuring HealthKit | Wildcard development profiles cannot carry HealthKit entitlements | Use an explicit App ID and provisioning profile with HealthKit enabled. Generate via automatic signing with `-allowProvisioningUpdates`. |
 | App blocks or returns empty health queries on first launch | HealthKit permission prompt requires interactive consent | Operator must manually grant HealthKit authorization directly on the Apple Watch screen. CLI automation cannot dismiss system permission sheets. |
+| Watch app terminates at runtime the moment recording starts: `*** Assertion failure in -[CLLocationManager setAllowsBackgroundLocationUpdates:], reason: 'Invalid parameter not satisfying: !stayUp \|\| CLClientIsBackgroundable(internal->fClient) \|\| _CFMZEnabled()'` | The code sets `CLLocationManager.allowsBackgroundLocationUpdates = true` on watchOS, which has no iOS-style location background mode that satisfies CoreLocation's backgroundability check. Declaring `WKBackgroundModes = [workout-processing]` is not sufficient. | Do not set `allowsBackgroundLocationUpdates` on watchOS. Background runtime already comes from the active `HKWorkoutSession`, so updates keep flowing while recording. You may still declare `WKBackgroundModes = [workout-processing]`, but the flag must not be set. |
