@@ -6,6 +6,7 @@
 - When to use: An agent must build, sign, install, trigger (via payload URL or openURL), benchmark, transfer container files, or retrieve diagnostics on a paired physical iOS device.
 - Related skills:
   - [iOS Development](./ios_development.md): Root skill covering the Xcode toolchain, serial builds, DerivedData, and the [signing model](./ios_development.md#signing).
+  - [Real Device UI Automation](./real_device_ui.md): Driving installed or App Store app UI directly via a development-signed WebDriverAgent runner, without requiring app source code, custom URL handlers, or container file access.
   - [Simulator Testing](./simulator_testing.md): Simulator UI automation, test acceleration, synthetic fixtures, and XCTest assertions.
   - [App Store Release](./app_store_release.md): Archive, export, verification, and distribution upload.
 - Last reviewed: 2026-09-30. Signing without an Xcode account session, `devicectl device copy to`, payload-URL runs with result polling, cold versus warm benchmarks, and running app control and state channels (URL commands, status heartbeat file, and WKWebView bridges) were verified on 2026-09-30 with Xcode 26.6 on a paired iPhone. The HealthKit, TCC, and console notes come from earlier verified runs.
@@ -21,6 +22,7 @@ Boundaries:
 - Physical device testing does not substitute for simulator testing (which validates synthetic UI flows and assertions), nor does a simulator run prove physical hardware behavior or real HealthKit access.
 - Build logs, `.xcresult` bundles, screenshots, console dumps, and output artifacts belong in ignored local scratch. Never commit private user records, device identifiers, or credentials.
 - The calling project must supply its project path, scheme, bundle ID, supported URL routes, signing parameters, result schemas, and pass/fail criteria.
+- Target app scope: This skill covers applications built from source or instrumented with container access and custom URL routes. To automate the user interface of existing, preinstalled, or App Store applications without source code, container access, or app-level instrumentation, use [Real Device UI Automation](./real_device_ui.md).
 
 ## Acceptance Criteria
 
@@ -149,6 +151,7 @@ When an app is already active, choose a control and inspection channel based on 
 |---|---|---|---|---|
 | URL commands (`process openURL`) | Host → App | Discrete (~1–2 s per command invocation overhead) | URL scheme with action allowlist in app; no network permissions or in-app server | Yes |
 | Status heartbeat file (`copy from`) | App → Host | Polling cadence (~5 s write cadence; ~1–2 s copy) | Container access, atomic file write (`.atomic`); no network permissions | Yes (recommended for liveness) |
+| UI automation runner (WDA) | Host ↔ App UI | Interactive, action-dependent; no latency guarantee | Development-signed WDA runner; does not need target app source, URL handler, or container access | Yes (see [`./real_device_ui.md`](./real_device_ui.md)) |
 | WKWebView message handlers | Page ↔ Native (internal) | Adds tens of milliseconds per call (see [Benchmarking](#benchmarking-on-a-device)) | `WKScriptMessageHandler` (fire-and-forget) or `WKScriptMessageHandlerWithReply` (reply); `WKURLSchemeHandler` for ES modules | Yes |
 | In-app debug control server (WebSocket/HTTP) | Host ↔ App (bidirectional) | Real-time / streaming | `Network.framework`, local-network permission prompt, app in foreground, access token | No (not yet verified) |
 | Safari Web Inspector | Host ↔ Web page (bidirectional) | Interactive / real-time | `isInspectable = true` (iOS 16.4+), Safari developer tools | No (not yet verified) |

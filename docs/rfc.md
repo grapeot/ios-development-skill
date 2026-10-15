@@ -7,10 +7,15 @@ skills/
   ios_development.md      root skill: routing plus shared foundations
   simulator_testing.md    simulator UI automation and fast test loops
   real_device.md          paired-device install, files, triggers, results, benchmarks
+  real_device_ui.md       installed-app UI automation via WebDriverAgent runner
+  watch_development.md    paired Apple Watch DDI, signing, and CLI installation
   app_store_release.md    archive, export, verify, upload
 scripts/
   check_skills.py         offline structure, link, and privacy check (CI)
   team_from_profile.sh    read a team ID from a cached provisioning profile
+  wda_client.py           standard-library WebDriverAgent HTTP client
+tests/
+  test_wda_client.py      offline synthetic HTTP unit tests for WDA client
 docs/                     PRD, RFC, test strategy, working log
 ```
 
@@ -48,9 +53,9 @@ HealthKit and TCC notes move into their own section of `real_device.md`, unchang
 
 Each skill is drafted by Antigravity (Gemini) from the original skill text plus a short packet of new, verified facts. The main agent then reviews the draft for accuracy, scope, and duplication and edits it in place. Content that is specific to one private app or machine stays in the installing workspace's private overlay, not in this repository.
 
-### 6. No CLI
+### 6. No general Apple-tool wrapper; focused WDA client allowed
 
-The skills drive Apple's own tools. A wrapper would hide the raw error output that agents need, and it would drift from Xcode releases. The two scripts are small helpers: one validates this repository, and one reads a value that must stay out of commands.
+The skills drive Apple's own tools directly. A general wrapper CLI around `xcodebuild`, `simctl`, or `devicectl` would hide raw error output that agents need and drift across Xcode releases. A focused, standard-library helper (`scripts/wda_client.py`) is provided solely for communicating with an already-running WebDriverAgent HTTP service on a device tunnel, avoiding external framework dependencies while keeping session and private output state outside the repository. The other repository scripts are small offline validation and team-ID extraction utilities.
 
 ## Validation
 

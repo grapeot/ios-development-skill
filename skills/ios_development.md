@@ -7,9 +7,10 @@
 - Related skills:
   - [`./simulator_testing.md`](./simulator_testing.md)
   - [`./real_device.md`](./real_device.md)
+  - [`./real_device_ui.md`](./real_device_ui.md)
   - [`./watch_development.md`](./watch_development.md)
   - [`./app_store_release.md`](./app_store_release.md)
-- Last reviewed: 2026-10-12. Consolidated from four earlier skills whose content was verified on real projects. Device signing without an Xcode account session and container file transfer were verified on 2026-09-30 with Xcode 26.6 on a paired iPhone. A watchOS focused skill was added and its flows were observed during a first-time physical Apple Watch setup on 2026-10-12.
+- Last reviewed: 2026-10-15. Consolidated from four earlier skills whose content was verified on real projects. Device signing without an Xcode account session and container file transfer were verified on 2026-09-30 with Xcode 26.6 on a paired iPhone. A watchOS focused skill was added on 2026-10-12. Real-device UI automation for installed apps via an offline-built WebDriverAgent runner and a lightweight client was verified on 2026-10-15 on a physical iPhone with iOS 27.2 and Xcode 27.0.
 
 ## Goal and Boundaries
 
@@ -33,6 +34,7 @@ Routing and shared foundations are satisfied when:
 | Verify on simulator | Validate UI flows, capture screenshots, run XCTest suites | [`./simulator_testing.md`](./simulator_testing.md) |
 | Speed up the loop | Fast `test-without-building` cycles, targeted `-only-testing`, inspect `.xcresult` | [`./simulator_testing.md`](./simulator_testing.md) |
 | Run on a device | Physical-device install, container file copy, URL triggers, on-device benchmarks, HealthKit/TCC | [`./real_device.md`](./real_device.md) |
+| Drive device UI | Automate installed/App Store app UI, inspect accessibility tree, tap/type via WDA runner | [`./real_device_ui.md`](./real_device_ui.md) |
 | Run on Apple Watch | Physical Apple Watch pairing via iPhone, DDI symbol preparation, HealthKit signing, and CLI installation | [`./watch_development.md`](./watch_development.md) |
 | Release | Archive, App Store export, IPA metadata inspection, upload to App Store Connect | [`./app_store_release.md`](./app_store_release.md) |
 
@@ -103,4 +105,4 @@ Calling projects remain decoupled from this skill and must supply:
 
 ## Installing this skill
 
-Add only this root file (`ios_development.md`) to the workspace skill index. Focused skills (`./simulator_testing.md`, `./real_device.md`, `./watch_development.md`, `./app_store_release.md`) sit alongside it and load on demand based on lifecycle routing.
+Add only this root file (`ios_development.md`) to the workspace skill index. Focused skills (`./simulator_testing.md`, `./real_device.md`, `./real_device_ui.md`, `./watch_development.md`, `./app_store_release.md`) sit alongside it and load on demand based on lifecycle routing.
