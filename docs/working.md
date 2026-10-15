@@ -34,6 +34,7 @@
 - Session close preserves the runner; `/wda/shutdown` returns plain text and stops it. Preinstalled-runner launch via `devicectl` alone has known iOS 27 caveats; the tested route uses `xcodebuild test-without-building`.
 - Updated root skill `skills/ios_development.md` with routing for device UI, clarified target app boundaries in `skills/real_device.md`, updated `README.md`, `docs/prd.md`, `docs/rfc.md`, and `docs/test.md`.
 - A later runner launch timed out while enabling automation mode; a device screenshot showed an XCTest passcode authorization prompt. Recorded the human-consent recovery boundary rather than treating pairing/Developer Mode as sufficient. No passcode was captured or requested in chat.
+- After local user approval, repeated `test-without-building` reached readiness; opening an installed-app session, reading the tree, navigating to search and back home passed. The helper handled upstream plain-text shutdown, the endpoint became unavailable, and the owned xcodebuild process exited. The initial timeout remains documented as an observed consent requirement, not an unresolved relaunch failure.
 
 ## Lessons Learned
 
