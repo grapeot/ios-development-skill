@@ -1,12 +1,14 @@
 # iOS Development Skill
 
-This skill equips AI coding agents—such as Claude Code, Codex, Cursor, and OpenCode—to handle iOS development workflows end-to-end: running simulator testing, deploying to a paired iPhone and bringing back results, and preparing App Store Connect releases. It directly drives Apple's own tools (`xcodebuild`, `simctl`, `devicectl`) with no wrapper CLI.
+This skill equips AI coding agents—such as Claude Code, Codex, Cursor, and OpenCode—to handle iOS development workflows end-to-end: running simulator testing, deploying to a paired iPhone and bringing back results, driving real-device UI, and preparing App Store Connect releases. It directly drives Apple's own tools (`xcodebuild`, `simctl`, `devicectl`) without a general wrapper CLI, alongside an optional small standard-library helper for WebDriverAgent device UI automation.
 
 ## What is inside
 
 - [`skills/ios_development.md`](skills/ios_development.md) — Root skill: lifecycle routing, toolchain setup, serial builds, and the shared signing model.
 - [`skills/simulator_testing.md`](skills/simulator_testing.md) — Simulator UI automation and fast test loops (`build-for-testing` / `test-without-building`).
 - [`skills/real_device.md`](skills/real_device.md) — Paired-device installation, file transfer, URL payload triggers, result retrieval, and benchmarks.
+- [`skills/real_device_ui.md`](skills/real_device_ui.md) — Real-device UI automation: controlling installed or App Store apps via WebDriverAgent, accessibility inspection, taps, typing, and screenshots.
+- [`skills/watch_development.md`](skills/watch_development.md) — Physical Apple Watch pairing via iPhone, DDI symbol preparation, HealthKit signing, and CLI installation.
 - [`skills/app_store_release.md`](skills/app_store_release.md) — App Store Connect releases: archive, export, verification, and upload.
 
 ## Install

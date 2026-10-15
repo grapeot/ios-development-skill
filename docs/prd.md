@@ -23,9 +23,11 @@ They shared knowledge that was either duplicated or missing where it was needed:
 ## Requirements
 
 - One root skill that routes a task to the right focused skill and holds the knowledge all of them share.
-- Three focused skills:
+- Focused skills:
   - **Simulator testing**: UI automation plus test acceleration, which are the same `xcodebuild test` loop.
   - **Real device**: signing and installing for a paired device, moving files in and out of the app container, triggering one-shot runs by URL, retrieving results, and benchmarking on device. Framework-specific permission notes (HealthKit, TCC) go in their own section.
+  - **Real device UI**: driving installed or App Store apps via WebDriverAgent, accessibility hierarchy inspection, taps, typing, and screenshots without target app source or container access.
+  - **Watch development**: physical Apple Watch pairing, DDI symbol preparation, HealthKit signing, and CLI installation.
   - **App Store release**: archive, export, IPA verification, and upload.
 - Each skill states its goal, boundaries, acceptance criteria, resources, and only traps that were observed in real runs, following result-over-process skill design.
 - No private identifiers in any tracked file: no team IDs, device names, bundle IDs of private apps, private hosts, or credential locations. Placeholders only.
@@ -34,7 +36,7 @@ They shared knowledge that was either duplicated or missing where it was needed:
 
 ## Non-goals
 
-- A CLI or wrapper around `xcodebuild`, `simctl`, or `devicectl`. The skills describe results and constraints, and the agent calls Apple's tools directly.
+- A general CLI or wrapper around Apple's tools (`xcodebuild`, `simctl`, `devicectl`). The skills describe results and constraints, and the agent calls Apple's tools directly. A focused standard-library helper (`scripts/wda_client.py`) is allowed solely for WebDriverAgent HTTP service communication.
 - macOS, watchOS, tvOS, or visionOS specifics beyond what the iOS flows need.
 - Replacing Xcode for interactive development.
 - Android or cross-platform frameworks.
