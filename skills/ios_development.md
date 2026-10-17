@@ -33,6 +33,7 @@ Routing and shared foundations are satisfied when:
 | Change code | Modify UI or feature logic, build, and check layout | [`./simulator_testing.md`](./simulator_testing.md) |
 | Verify on simulator | Validate UI flows, capture screenshots, run XCTest suites | [`./simulator_testing.md`](./simulator_testing.md) |
 | Speed up the loop | Fast `test-without-building` cycles, targeted `-only-testing`, inspect `.xcresult` | [`./simulator_testing.md`](./simulator_testing.md) |
+| Recover stalled or failing simulator tests | Handle timed-out or incomplete runs, inspect same-run failure evidence, and recover without colliding with owned stale jobs | [Bounded failure recovery](./simulator_testing.md#bounded-failure-recovery) |
 | Run on a device | Physical-device install, container file copy, URL triggers, on-device benchmarks, HealthKit/TCC | [`./real_device.md`](./real_device.md) |
 | Drive device UI | Automate installed/App Store app UI, inspect accessibility tree, tap/type via WDA runner | [`./real_device_ui.md`](./real_device_ui.md) |
 | Run on Apple Watch | Physical Apple Watch pairing via iPhone, DDI symbol preparation, HealthKit signing, and CLI installation | [`./watch_development.md`](./watch_development.md) |
