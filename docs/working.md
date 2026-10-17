@@ -36,7 +36,14 @@
 - A later runner launch timed out while enabling automation mode; a device screenshot showed an XCTest passcode authorization prompt. Recorded the human-consent recovery boundary rather than treating pairing/Developer Mode as sufficient. No passcode was captured or requested in chat.
 - After local user approval, repeated `test-without-building` reached readiness; opening an installed-app session, reading the tree, navigating to search and back home passed. The helper handled upstream plain-text shutdown, the endpoint became unavailable, and the owned xcodebuild process exited. The initial timeout remains documented as an observed consent requirement, not an unresolved relaunch failure.
 
+### 2026-10-17
+
+- Added root lifecycle routing to `Bounded Failure Recovery` in `skills/simulator_testing.md` (drafted with Antigravity, reviewed): caller-defined phase/end-to-end deadlines, separate assertion/runner/result status, same-run raw log inspection, scoped cleanup before reusing DerivedData, targeted recovery, post-rotation geometry and bounded scroll triage, and separate reporting for explicitly requested manual-testing deployments. No wrapper code, real-device workflow, or global timing limit was added.
+- Recorded an anonymized UI run with an 8 s build, 734 s test phase and 744 s total. The outer coding CLI expired before its owned test process; the wrapper recorded `tee` exit 141 and later an owned `simctl diagnose --timeout=600` remained. These observations do not prove load/concurrency as the cause or explain all internal teardown time. No universal frame-predicate/swipe claim or passing rotation result is inferred.
+
 ## Lessons Learned
+
+- An outer CLI timeout or secondary pipeline status does not prove owned `xcodebuild` or diagnostic descendants stopped. Preserve the first same-run assertion failure, inspect only confirmed owned processes before reusing DerivedData, and bound recovery to evidence-backed single-test iteration instead of waiting for a PID or blindly rerunning a suite.
 
 - Test acceleration and simulator UI automation describe the same `xcodebuild test` loop. Keeping them as separate skills duplicated it.
 - Automatic signing without `-allowProvisioningUpdates` works offline with a cached wildcard development profile. With the flag and no signed-in account, the build fails. Manual signing rejects Xcode-managed profiles.

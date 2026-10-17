@@ -111,6 +111,50 @@ When fixing failures or iterating on code, escalate in this order:
 3. Run the focused suite covering the affected feature.
 4. Run full `xcodebuild test` only after focused tests pass.
 
+### Bounded Failure Recovery
+
+When a simulator test run stalls, exceeds an outer caller deadline, or exits with incomplete output, recover through a bounded loop rather than polling indefinitely or rerunning the full suite blindly.
+
+#### Pre-Run Contract and Status Separation
+
+- Declare per-phase and end-to-end deadlines, expected verification evidence, and ownership of the target simulator destination and `-derivedDataPath` before starting a run.
+- Exact time limits are chosen by the caller; do not rely on a global hard minute cap or invent vendor CLI timeout flags.
+- Record build status, test assertion outcome, runner process state, and result bundle status separately.
+- Never infer wrapper or script success from passing assertion lines in stdout, and treat missing completion evidence as incomplete/recoverable rather than passing.
+
+#### Assertion Outcome vs. Teardown and Packaging
+
+- Separate assertion execution from runner shutdown and `.xcresult` packaging.
+- In an observed simulator UI test run, compilation took 8 s while the test phase ran 734 s (744 s total): assertion failures were already logged before the outer coding CLI deadline expired, while the owned test process remained active afterward.
+- When an assertion fails in the log, preserve the first failure immediately and treat that test as failed; do not wait merely for the `xcodebuild` PID to disappear. Separately decide whether to let an owned run collect further evidence within its declared budget or stop it for recovery.
+- Interrupted runs can leave partial logs or unreadable `.xcresult` bundles. A secondary pipeline exit such as `tee` status `141` is compatible with `SIGPIPE` when a reader closes early, not proof of the entire internal cause.
+- If `.xcresult` is unavailable or unreadable, inspect the raw same-run build/test logs and exit statuses rather than triggering a blind full-suite rerun. Do not generalize slow completion to machine load or concurrent tests without same-run evidence.
+
+#### Post-Timeout Inspection and Scoped Cleanup
+
+- Do not assume an outer timeout canceled child `xcodebuild` processes or daemon-backed diagnostics; in the observed recovery, an owned `simctl diagnose --timeout=600` process remained active after its caller timed out.
+- Before reusing `-derivedDataPath` or a simulator destination after a timeout, inspect the owned descendant process/group and the pinned destination.
+- Stop only confirmed owned stale jobs using the caller's supported cleanup mechanism. Avoid global process kills and never shut down or erase another job's simulator.
+
+#### Bounded Recovery Loop
+
+1. Isolate the failing test case with `-only-testing:<Bundle>/<Suite>/<testMethod>`.
+2. Make one evidence-backed change addressing the observed failure.
+3. Run a targeted `test-without-building` retest (or `build-for-testing` first if source changed).
+4. If the failure repeats unchanged or the deadline is reached, stop polling or resuming, preserve same-run artifacts, and report or hand off the explicit remaining blocker.
+
+#### UI Geometry, Orientation, and Scroll Triage
+
+- Verify the actual selected screen, app/container geometry, and viewport after rotation or re-layout rather than checking only `XCUIDevice.shared.orientation` or `element.exists`.
+- For offscreen, tall, or clipped content, check visible viewport intersection and use bounded, direction-aware scrolling. Do not infer an application defect from `isHittable == false` alone.
+- Do not generalize one failing frame predicate or swipe into a universal API limitation, and do not claim an unresolved rotation failure passed.
+- Never weaken acceptance merely to make a failing test pass. Keep the [XCUITest gesture and orientation traps](#xcuitest-gesture-and-layout-gotchas-xcode-26x-iphone-simulators) in force.
+
+#### Manual-Testing Deployment Boundary
+
+- When the user explicitly requests deployment for manual testing despite a failing automated test, report the automated failure separately from signed build, install, and launch status.
+- Never claim automated acceptance from a manual deployment, and do not treat that request as blanket authorization to skip tests.
+
 ## Visual Verification and Command Patterns
 
 ### Scheme Discovery and Full Test Run
