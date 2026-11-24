@@ -35,6 +35,8 @@ An agent can independently verify:
 
 ## Upstream Runner and Environment
 
+For WeChat navigation, search, screenshots, and self-send tests, see the standalone [WeChat iOS skill](https://github.com/grapeot/wechat-ios-skill). It connects to an already running WebDriverAgent and does not require this repository at runtime.
+
 WebDriverAgent is maintained upstream at [appium/WebDriverAgent](https://github.com/appium/WebDriverAgent). Verified using tag `v16.15.0` (commit `e7e2665a00633dc174d7fc579f7e606bc9ba782a`).
 - Pin the WDA checkout to a fixed tag or commit; toolchain or WDA version updates require rebuilding the runner. Older iOS versions have not been verified. Consult the Appium [run-preinstalled documentation](https://appium.github.io/appium-xcuitest-driver/latest/guides/run-preinstalled-wda/) for version caveats.
 - On iOS 27, launching a preinstalled runner via `devicectl` alone has known limitations; the verified operational path is `xcodebuild ... test-without-building`.
